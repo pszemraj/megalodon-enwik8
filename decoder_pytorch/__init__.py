@@ -1,6 +1,7 @@
 """Llama-style transformer for language modeling experiments."""
 
 from .llama import Llama
+from .megalodon import MegalodonLM
 from .utils import (
     get_optimal_device,
     gumbel_noise,
@@ -14,6 +15,7 @@ from .utils import (
 
 __all__ = [
     "Llama",
+    "MegalodonLM",
     # Sampling utilities
     "log",
     "gumbel_noise",

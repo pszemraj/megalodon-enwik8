@@ -15,6 +15,7 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm.auto import tqdm
 
 from decoder_pytorch import Llama, get_optimal_device, model_summary
+from decoder_pytorch import MegalodonLM
 
 
 # Data utilities
@@ -105,35 +106,77 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
     val_loader = cycle(val_loader)
 
     # Create model
-    flash_attn_requested = config.get("flash_attn")
-    if flash_attn_requested is None:
-        flash_attn_requested = device_caps["supports_flash_attn"]
-    elif flash_attn_requested and not device_caps["supports_flash_attn"]:
-        print(
-            "Warning: flash attention requested but not supported on this device; using standard attention."
-        )
-        flash_attn_requested = False
+    model_type = str(config.get("model", "llama")).lower()
 
-    model = Llama(
-        num_tokens=config.get("num_tokens", 256),
-        dim=config.get("dim", 512),
-        depth=config.get("depth", 16),
-        heads=config.get("heads", 8),
-        dim_head=config.get("dim_head", 64),
-        tied_embedding=config.get("tied_embedding", True),
-        ffn_dim_multiplier=config.get("ffn_dim_multiplier"),
-        flash_attn=bool(flash_attn_requested),
-    ).to(device)
+    if model_type == "llama":
+        flash_attn_requested = config.get("flash_attn")
+        if flash_attn_requested is None:
+            flash_attn_requested = device_caps["supports_flash_attn"]
+        elif flash_attn_requested and not device_caps["supports_flash_attn"]:
+            print(
+                "Warning: flash attention requested but not supported on this device; using standard attention."
+            )
+            flash_attn_requested = False
+
+        model = Llama(
+            num_tokens=config.get("num_tokens", 256),
+            dim=config.get("dim", 512),
+            depth=config.get("depth", 16),
+            heads=config.get("heads", 8),
+            dim_head=config.get("dim_head", 64),
+            tied_embedding=config.get("tied_embedding", True),
+            ffn_dim_multiplier=config.get("ffn_dim_multiplier"),
+            flash_attn=bool(flash_attn_requested),
+        ).to(device)
+    elif model_type in ("megalodon", "mega"):
+        seq_len = config["seq_len"]
+        chunk_size = int(config.get("chunk_size", seq_len))
+        if seq_len > chunk_size and seq_len % chunk_size != 0:
+            raise ValueError(
+                f"seq_len ({seq_len}) must be <= chunk_size ({chunk_size}) or divisible by it for Megalodon."
+            )
+
+        model = MegalodonLM(
+            vocab_size=config.get("num_tokens", 256),
+            model_dim=config.get("model_dim", 384),
+            num_layers=config.get("num_layers", 6),
+            num_heads=config.get("num_heads", 3),
+            z_dim=config.get("z_dim", 192),
+            value_dim=config.get("value_dim", 384),
+            ffn_hidden_dim=config.get("ffn_hidden_dim", 1024),
+            cema_ndim=config.get("cema_ndim", 8),
+            chunk_size=chunk_size,
+            norm_num_groups=config.get("norm_num_groups", 32),
+            dropout=config.get("dropout", 0.0),
+            attention_dropout=config.get("attention_dropout", 0.0),
+            hidden_dropout=config.get("hidden_dropout", 0.0),
+            swiglu=bool(config.get("swiglu", True)),
+            rescale_nffn=bool(config.get("rescale_nffn", False)),
+            scale_emb=bool(config.get("scale_emb", False)),
+            share_emb=bool(config.get("share_emb", False)),
+            rope_base=config.get("rope_base"),
+            init_mode=config.get("init_mode", "he"),
+            gradient_checkpointing=bool(
+                config.get("gradient_checkpointing", False)
+            ),
+        ).to(device)
+    else:
+        raise ValueError(f"Unsupported model type '{model_type}'")
 
     model_summary(model, max_depth=3, show_param_shapes=True)
 
     # Optimizer
     # Fused optimizer is available for CUDA only (not MPS or CPU)
+    has_complex_params = any(p.is_complex() for p in model.parameters())
+    fused_opt = device_caps["supports_fused_optimizer"] and not has_complex_params
+    if device_caps["supports_fused_optimizer"] and not fused_opt:
+        print("Disabling fused optimizer because the model has complex parameters.")
+
     optimizer = Adam(
         model.parameters(),
         lr=config.get("learning_rate", 1e-3),
         weight_decay=config.get("weight_decay", 0.0),
-        fused=device_caps["supports_fused_optimizer"],
+        fused=fused_opt,
     )
 
     # Training state

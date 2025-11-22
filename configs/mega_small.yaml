@@ -1,0 +1,49 @@
+# Slightly larger Megalodon variant for enwik8
+run_dir: runs/mega-small
+model: megalodon
+
+# Model
+num_tokens: 256
+model_dim: 512
+num_layers: 8
+num_heads: 4
+z_dim: 256
+value_dim: 512
+ffn_hidden_dim: 1408  # ~2.75x width
+cema_ndim: 8
+chunk_size: 512
+norm_num_groups: 32
+swiglu: true
+rescale_nffn: false
+scale_emb: false
+share_emb: false
+init_mode: he
+rope_base: null
+attention_dropout: 0.0
+hidden_dropout: 0.0
+dropout: 0.0
+gradient_checkpointing: false
+compile: false
+use_autocast: true
+
+# Training schedule
+num_batches: 8000
+batch_size: 1
+grad_accum_every: 12
+learning_rate: 0.0012
+weight_decay: 0.0003
+grad_clip_norm: 1.0
+
+# Data
+data_path: data/enwik8.gz
+seq_len: 512
+
+# training/validation/generation
+validate_every: 200
+val_batches: 16
+generate_every: 400
+save_every: 2000
+temperature: 1.0
+min_p: 0.1
+
+seed: 7

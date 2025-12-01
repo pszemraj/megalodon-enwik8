@@ -156,9 +156,7 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
             share_emb=bool(config.get("share_emb", False)),
             rope_base=config.get("rope_base"),
             init_mode=config.get("init_mode", "he"),
-            gradient_checkpointing=bool(
-                config.get("gradient_checkpointing", False)
-            ),
+            gradient_checkpointing=bool(config.get("gradient_checkpointing", False)),
         ).to(device)
     else:
         raise ValueError(f"Unsupported model type '{model_type}'")

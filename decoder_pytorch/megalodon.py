@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 from typing import Optional
 
 import torch
@@ -12,15 +10,15 @@ import torch.nn.functional as F
 
 from .utils import gumbel_sample, min_p_filter
 
-# Ensure the project root `src` is on sys.path so `megalodon` can be imported
-_SRC_ROOT = Path(__file__).resolve().parents[2] / "src"
-if _SRC_ROOT.exists():
-    src_path = str(_SRC_ROOT)
-    if src_path not in sys.path:
-        sys.path.insert(0, src_path)
-
-from megalodon.configuration_megalodon import MegalodonConfig
-from megalodon.modeling_megalodon import MegalodonForCausalLM
+try:
+    from megalodon.configuration_megalodon import MegalodonConfig
+    from megalodon.modeling_megalodon import MegalodonForCausalLM
+except ImportError as err:  # pragma: no cover - env guard
+    raise ImportError(
+        "Unable to import `megalodon`. Install the megalodon-hf package in the "
+        "active environment (e.g., `pip install -e .` from the repo root) before "
+        "using MegalodonLM."
+    ) from err
 
 
 class MegalodonLM(nn.Module):

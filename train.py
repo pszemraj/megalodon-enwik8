@@ -212,6 +212,34 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
     cumulative_tokens = 0
 
     for _ in pbar:
+        # Validation runs before the training step; tokens_seen counts training tokens only.
+        if step % validate_every == 0:
+            model.eval()
+            val_loss_sum = 0
+            val_tokens = 0
+            for _ in range(val_batches):
+                data = next(val_loader).to(device)
+                inputs = data[:, :-1]
+                targets = data[:, 1:]
+                with torch.no_grad(), autocast_context():
+                    logits = model(inputs, return_loss=False)
+                    loss_unreduced = torch.nn.functional.cross_entropy(
+                        logits.reshape(-1, logits.size(-1)),
+                        targets.reshape(-1),
+                        reduction="none",
+                    )
+                    val_loss_sum += loss_unreduced.sum().item()
+                    val_tokens += targets.numel()
+
+            val_loss = val_loss_sum / val_tokens
+            data_passes = cumulative_tokens / max(1, train_tokens_total)
+            tqdm.write(
+                f"Step {step} | Val loss: {val_loss:.4f} | tokens_seen={cumulative_tokens} | passes={data_passes:.3f}x"
+            )
+            # Log metrics
+            with open(run_dir / "metrics.jsonl", "a") as f:
+                f.write(json.dumps({"step": step, "val_loss": val_loss}) + "\n")
+
         model.train()
 
         # Training step with gradient accumulation
@@ -262,36 +290,6 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
 
         cumulative_tokens += total_tokens
         pbar.set_postfix({"loss": f"{avg_loss:.4f}"})
-
-        # Validation
-        if step % validate_every == 0:
-            model.eval()
-            val_loss_sum = 0
-            val_tokens = 0
-            for _ in range(val_batches):
-                data = next(val_loader).to(device)
-                inputs = data[:, :-1]
-                targets = data[:, 1:]
-                with torch.no_grad(), autocast_context():
-                    logits = model(inputs, return_loss=False)
-                    loss_unreduced = torch.nn.functional.cross_entropy(
-                        logits.reshape(-1, logits.size(-1)),
-                        targets.reshape(-1),
-                        reduction="none",
-                    )
-                    val_loss_sum += loss_unreduced.sum().item()
-                    val_tokens += targets.numel()
-
-            val_loss = val_loss_sum / val_tokens
-            data_passes = cumulative_tokens / max(1, train_tokens_total)
-            epoch_float = cumulative_tokens / max(1, train_tokens_total)
-            tqdm.write(
-                f"Step {step} | Val loss: {val_loss:.4f} | tokens_seen={cumulative_tokens} | passes={data_passes:.3f}x"
-            )
-
-            # Log metrics
-            with open(run_dir / "metrics.jsonl", "a") as f:
-                f.write(json.dumps({"step": step, "val_loss": val_loss}) + "\n")
 
         # Generation
         if step % generate_every == 0 and step > 0:

@@ -24,7 +24,7 @@ attention_dropout: 0.0
 hidden_dropout: 0.0
 dropout: 0.0
 gradient_checkpointing: false
-compile: true
+compile: false
 use_autocast: true
 
 # Training schedule

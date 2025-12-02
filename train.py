@@ -96,6 +96,7 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
     train_data, val_data = load_data(config["data_path"])
     train_dataset = SequenceDataset(train_data, config["seq_len"])
     val_dataset = SequenceDataset(val_data, config["seq_len"])
+    train_tokens_total = train_data.numel()
 
     train_loader = DataLoader(
         train_dataset, batch_size=config["batch_size"], shuffle=True
@@ -208,6 +209,7 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
     generate_length = config.get("generate_length", 256)
 
     pbar = tqdm(range(num_batches), desc="training")
+    cumulative_tokens = 0
 
     for _ in pbar:
         model.train()
@@ -252,13 +254,13 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
 
         # Compute final normalized loss for display
         avg_loss = total_loss_sum / total_tokens
-
         # Gradient clipping
         if config.get("grad_clip_norm"):
             torch.nn.utils.clip_grad_norm_(model.parameters(), config["grad_clip_norm"])
 
         optimizer.step()
 
+        cumulative_tokens += total_tokens
         pbar.set_postfix({"loss": f"{avg_loss:.4f}"})
 
         # Validation
@@ -281,7 +283,11 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
                     val_tokens += targets.numel()
 
             val_loss = val_loss_sum / val_tokens
-            tqdm.write(f"Step {step} | Val loss: {val_loss:.4f}")
+            data_passes = cumulative_tokens / max(1, train_tokens_total)
+            epoch_float = cumulative_tokens / max(1, train_tokens_total)
+            tqdm.write(
+                f"Step {step} | Val loss: {val_loss:.4f} | tokens_seen={cumulative_tokens} | passes={data_passes:.3f}x"
+            )
 
             # Log metrics
             with open(run_dir / "metrics.jsonl", "a") as f:

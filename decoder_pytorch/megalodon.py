@@ -92,17 +92,31 @@ class MegalodonLM(nn.Module):
         out = prompt.clone()
         attn_mask = torch.ones_like(out, dtype=torch.long, device=out.device)
 
-        for _ in range(max_length):
-            logits = self(
-                out,
-                mask=attn_mask,
-                return_loss=False,
-            )[:, -1]
+        outputs = self.model(
+            input_ids=out,
+            attention_mask=attn_mask,
+            use_cache=True,
+            return_dict=True,
+        )
+        logits = outputs.logits[:, -1]
+        cache = outputs.past_key_values
 
+        for _ in range(max_length):
             logits = min_p_filter(logits, min_p=min_p)
             sample = gumbel_sample(logits, temperature=temperature, dim=-1)
             out = torch.cat((out, sample), dim=-1)
-            attn_mask = torch.ones_like(out, dtype=torch.long, device=out.device)
+
+            step_mask = torch.ones_like(sample, dtype=torch.long, device=out.device)
+            outputs = self.model(
+                input_ids=sample,
+                attention_mask=step_mask,
+                past_key_values=cache,
+                use_cache=True,
+                return_dict=True,
+            )
+
+            logits = outputs.logits[:, -1]
+            cache = outputs.past_key_values
 
         return out[:, prompt.shape[-1] :]
 

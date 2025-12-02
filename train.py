@@ -204,6 +204,8 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
     val_batches = config.get("val_batches", 50)
     save_every = config.get("save_every", 1000)
     generate_every = config.get("generate_every", 500)
+    generate_prompt_len = config.get("generate_prompt_len", 128)
+    generate_length = config.get("generate_length", 256)
 
     pbar = tqdm(range(num_batches), desc="training")
 
@@ -289,12 +291,12 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
         if step % generate_every == 0 and step > 0:
             model.eval()
             data = next(val_loader).to(device)
-            prompt = data[:1, :128]  # Take first sequence, 128 tokens
+            prompt = data[:1, :generate_prompt_len]
 
             with torch.no_grad():
                 generated = model.generate(
                     prompt,
-                    max_length=256,
+                    max_length=generate_length,
                     temperature=config.get("temperature", 1.0),
                     min_p=config.get("min_p", 0.1),
                 )

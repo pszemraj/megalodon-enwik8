@@ -288,6 +288,12 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
 
         optimizer.step()
 
+        # Project log_q back into feasible region to prevent gradient drift
+        with torch.no_grad():
+            for module in model.modules():
+                if hasattr(module, "log_q"):
+                    module.log_q.real.clamp_(max=-1e-4)
+
         cumulative_tokens += total_tokens
         pbar.set_postfix({"loss": f"{avg_loss:.4f}"})
 

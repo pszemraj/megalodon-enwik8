@@ -30,8 +30,8 @@ use_autocast: true
 num_batches: 300
 batch_size: 1
 grad_accum_every: 16
-learning_rate: 0.0015
-weight_decay: 0.0003
+learning_rate: 0.0004
+weight_decay: 0.0002
 grad_clip_norm: 1.0
 
 # Data

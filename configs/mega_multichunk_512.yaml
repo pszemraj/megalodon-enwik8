@@ -1,6 +1,6 @@
 # Multi-chunk Megalodon config: train on seq_len 512 with chunk_size 256.
 # Generation uses a 384-token prompt and produces 128 tokens.
-run_dir: runs/mega-mc-512-1k
+run_dir: runs/mega-mc-512-1200steps-bf16-lowLR
 model: megalodon
 
 # Model
@@ -31,8 +31,8 @@ use_autocast: true
 num_batches: 1200
 batch_size: 1
 grad_accum_every: 16
-learning_rate: 0.0015
-weight_decay: 0.0003
+learning_rate: 0.0004
+weight_decay: 0.0002
 grad_clip_norm: 1.0
 
 # Data

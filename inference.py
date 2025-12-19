@@ -150,12 +150,14 @@ def main():
 
     prompt_len = prompt.shape[-1]
     gen_len = generated.shape[-1]
-    prompt_preview = prompt_text[:200]
     gen_text = "".join(chr(max(32, c)) for c in generated[0].cpu().numpy())
 
     print(f"Device: {device}")
     print(f"Prompt length: {prompt_len} | Generated length: {gen_len}")
-    print("\nPROMPT (first 200 chars):\n", prompt_preview)
+    if len(prompt_text) < 1000:
+        print("\nPROMPT:\n", prompt_text)
+    else:
+        print("\nPROMPT (first 200 chars):\n", prompt_text[:200])
     print("\nGENERATED:\n", gen_text)
 
 

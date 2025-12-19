@@ -1,5 +1,5 @@
-# Smaller than simple, larger than test (L6 · H384 · ~9M params)
-run_dir: runs/nano
+# Llama baseline (matches nano.yaml dims) with shorter schedule for quick runs
+run_dir: runs/nano-short-400
 
 # Model
 num_tokens: 256
@@ -10,11 +10,11 @@ dim_head: 64
 tied_embedding: true
 ffn_dim_multiplier: 1.5
 flash_attn: true
-compile: false  # turn off if torch.compile is unavailable
+compile: false
 use_autocast: true
 
-# Training schedule
-num_batches: 10000
+# Training schedule (short)
+num_batches: 300
 batch_size: 1
 grad_accum_every: 16
 learning_rate: 0.002
@@ -26,9 +26,9 @@ data_path: data/enwik8.gz
 seq_len: 512
 
 # training/validation/generation
-validate_every: 250
-val_batches: 20
-generate_every: 250
+validate_every: 100
+val_batches: 10
+generate_every: 50
 save_every: 2000
 temperature: 1.0
 min_p: 0.1

@@ -24,6 +24,7 @@ classifiers=[
 ]
 
 dependencies = [
+    "git+https://github.com/pszemraj/megalodon-hf.git",
     "einops>=0.8.0",
     "rotary_embedding_torch",
     "torch>=2.9.0",

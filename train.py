@@ -15,6 +15,7 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm.auto import tqdm
 
 from decoder_pytorch import Llama, get_optimal_device, model_summary
+from decoder_pytorch import MegalodonLM
 
 
 # Data utilities
@@ -95,6 +96,7 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
     train_data, val_data = load_data(config["data_path"])
     train_dataset = SequenceDataset(train_data, config["seq_len"])
     val_dataset = SequenceDataset(val_data, config["seq_len"])
+    train_tokens_total = train_data.numel()
 
     train_loader = DataLoader(
         train_dataset, batch_size=config["batch_size"], shuffle=True
@@ -105,35 +107,75 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
     val_loader = cycle(val_loader)
 
     # Create model
-    flash_attn_requested = config.get("flash_attn")
-    if flash_attn_requested is None:
-        flash_attn_requested = device_caps["supports_flash_attn"]
-    elif flash_attn_requested and not device_caps["supports_flash_attn"]:
-        print(
-            "Warning: flash attention requested but not supported on this device; using standard attention."
-        )
-        flash_attn_requested = False
+    model_type = str(config.get("model", "llama")).lower()
 
-    model = Llama(
-        num_tokens=config.get("num_tokens", 256),
-        dim=config.get("dim", 512),
-        depth=config.get("depth", 16),
-        heads=config.get("heads", 8),
-        dim_head=config.get("dim_head", 64),
-        tied_embedding=config.get("tied_embedding", True),
-        ffn_dim_multiplier=config.get("ffn_dim_multiplier"),
-        flash_attn=bool(flash_attn_requested),
-    ).to(device)
+    if model_type == "llama":
+        flash_attn_requested = config.get("flash_attn")
+        if flash_attn_requested is None:
+            flash_attn_requested = device_caps["supports_flash_attn"]
+        elif flash_attn_requested and not device_caps["supports_flash_attn"]:
+            print(
+                "Warning: flash attention requested but not supported on this device; using standard attention."
+            )
+            flash_attn_requested = False
+
+        model = Llama(
+            num_tokens=config.get("num_tokens", 256),
+            dim=config.get("dim", 512),
+            depth=config.get("depth", 16),
+            heads=config.get("heads", 8),
+            dim_head=config.get("dim_head", 64),
+            tied_embedding=config.get("tied_embedding", True),
+            ffn_dim_multiplier=config.get("ffn_dim_multiplier"),
+            flash_attn=bool(flash_attn_requested),
+        ).to(device)
+    elif model_type in ("megalodon", "mega"):
+        seq_len = config["seq_len"]
+        chunk_size = int(config.get("chunk_size", seq_len))
+        if seq_len > chunk_size and seq_len % chunk_size != 0:
+            raise ValueError(
+                f"seq_len ({seq_len}) must be <= chunk_size ({chunk_size}) or divisible by it for Megalodon."
+            )
+
+        model = MegalodonLM(
+            vocab_size=config.get("num_tokens", 256),
+            model_dim=config.get("model_dim", 384),
+            num_layers=config.get("num_layers", 6),
+            num_heads=config.get("num_heads", 3),
+            z_dim=config.get("z_dim", 192),
+            value_dim=config.get("value_dim", 384),
+            ffn_hidden_dim=config.get("ffn_hidden_dim", 1024),
+            cema_ndim=config.get("cema_ndim", 8),
+            chunk_size=chunk_size,
+            norm_num_groups=config.get("norm_num_groups", 32),
+            dropout=config.get("dropout", 0.0),
+            attention_dropout=config.get("attention_dropout", 0.0),
+            hidden_dropout=config.get("hidden_dropout", 0.0),
+            swiglu=bool(config.get("swiglu", True)),
+            rescale_nffn=bool(config.get("rescale_nffn", False)),
+            scale_emb=bool(config.get("scale_emb", False)),
+            share_emb=bool(config.get("share_emb", False)),
+            rope_base=config.get("rope_base"),
+            init_mode=config.get("init_mode", "he"),
+            gradient_checkpointing=bool(config.get("gradient_checkpointing", False)),
+        ).to(device)
+    else:
+        raise ValueError(f"Unsupported model type '{model_type}'")
 
     model_summary(model, max_depth=3, show_param_shapes=True)
 
     # Optimizer
     # Fused optimizer is available for CUDA only (not MPS or CPU)
+    has_complex_params = any(p.is_complex() for p in model.parameters())
+    fused_opt = device_caps["supports_fused_optimizer"] and not has_complex_params
+    if device_caps["supports_fused_optimizer"] and not fused_opt:
+        print("Disabling fused optimizer because the model has complex parameters.")
+
     optimizer = Adam(
         model.parameters(),
         lr=config.get("learning_rate", 1e-3),
         weight_decay=config.get("weight_decay", 0.0),
-        fused=device_caps["supports_fused_optimizer"],
+        fused=fused_opt,
     )
 
     # Training state
@@ -163,10 +205,41 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
     val_batches = config.get("val_batches", 50)
     save_every = config.get("save_every", 1000)
     generate_every = config.get("generate_every", 500)
+    generate_prompt_len = config.get("generate_prompt_len", 128)
+    generate_length = config.get("generate_length", 256)
 
     pbar = tqdm(range(num_batches), desc="training")
+    cumulative_tokens = 0
 
     for _ in pbar:
+        # Validation runs before the training step; tokens_seen counts training tokens only.
+        if step % validate_every == 0:
+            model.eval()
+            val_loss_sum = 0
+            val_tokens = 0
+            for _ in range(val_batches):
+                data = next(val_loader).to(device)
+                inputs = data[:, :-1]
+                targets = data[:, 1:]
+                with torch.no_grad(), autocast_context():
+                    logits = model(inputs, return_loss=False)
+                    loss_unreduced = torch.nn.functional.cross_entropy(
+                        logits.reshape(-1, logits.size(-1)),
+                        targets.reshape(-1),
+                        reduction="none",
+                    )
+                    val_loss_sum += loss_unreduced.sum().item()
+                    val_tokens += targets.numel()
+
+            val_loss = val_loss_sum / val_tokens
+            data_passes = cumulative_tokens / max(1, train_tokens_total)
+            tqdm.write(
+                f"Step {step} | Val loss: {val_loss:.4f} | tokens_seen={cumulative_tokens} | passes={data_passes:.3f}x"
+            )
+            # Log metrics
+            with open(run_dir / "metrics.jsonl", "a") as f:
+                f.write(json.dumps({"step": step, "val_loss": val_loss}) + "\n")
+
         model.train()
 
         # Training step with gradient accumulation
@@ -209,51 +282,29 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
 
         # Compute final normalized loss for display
         avg_loss = total_loss_sum / total_tokens
-
         # Gradient clipping
         if config.get("grad_clip_norm"):
             torch.nn.utils.clip_grad_norm_(model.parameters(), config["grad_clip_norm"])
 
         optimizer.step()
 
+        # Project EMA parameters back into stable region (Megalodon only)
+        if hasattr(model, "project_ema_parameters"):
+            model.project_ema_parameters()
+
+        cumulative_tokens += total_tokens
         pbar.set_postfix({"loss": f"{avg_loss:.4f}"})
-
-        # Validation
-        if step % validate_every == 0:
-            model.eval()
-            val_loss_sum = 0
-            val_tokens = 0
-            for _ in range(val_batches):
-                data = next(val_loader).to(device)
-                inputs = data[:, :-1]
-                targets = data[:, 1:]
-                with torch.no_grad(), autocast_context():
-                    logits = model(inputs, return_loss=False)
-                    loss_unreduced = torch.nn.functional.cross_entropy(
-                        logits.reshape(-1, logits.size(-1)),
-                        targets.reshape(-1),
-                        reduction="none",
-                    )
-                    val_loss_sum += loss_unreduced.sum().item()
-                    val_tokens += targets.numel()
-
-            val_loss = val_loss_sum / val_tokens
-            tqdm.write(f"Step {step} | Val loss: {val_loss:.4f}")
-
-            # Log metrics
-            with open(run_dir / "metrics.jsonl", "a") as f:
-                f.write(json.dumps({"step": step, "val_loss": val_loss}) + "\n")
 
         # Generation
         if step % generate_every == 0 and step > 0:
             model.eval()
             data = next(val_loader).to(device)
-            prompt = data[:1, :128]  # Take first sequence, 128 tokens
+            prompt = data[:1, :generate_prompt_len]
 
             with torch.no_grad():
                 generated = model.generate(
                     prompt,
-                    max_length=256,
+                    max_length=generate_length,
                     temperature=config.get("temperature", 1.0),
                     min_p=config.get("min_p", 0.1),
                 )

@@ -1,4 +1,16 @@
-"""Llama-style transformer for language modeling experiments."""
+"""Megalodon vs Transformer comparison on character-level language modeling.
+
+This package provides:
+- MegalodonLM: Wrapper for megalodon-hf with a simple training interface
+- Llama: Standard transformer baseline for comparison
+
+See README.md for usage and RESULTS.md for experimental results.
+"""
+
+try:
+    from ._version import version as __version__
+except ImportError:
+    __version__ = "unknown"
 
 from .llama import Llama
 from .megalodon import MegalodonLM
@@ -14,6 +26,7 @@ from .utils import (
 )
 
 __all__ = [
+    "__version__",
     "Llama",
     "MegalodonLM",
     # Sampling utilities

@@ -1,15 +1,16 @@
-"""Simple inference utility for Megalodon checkpoints."""
+"""Simple inference utility for Megalodon and Llama checkpoints."""
 
 from __future__ import annotations
 
 import argparse
 import gzip
 from pathlib import Path
+from typing import Union
 
 import numpy as np
 import torch
 
-from decoder_pytorch import MegalodonLM
+from megalodon_enwik8 import Llama, MegalodonLM
 
 # A non-enwik8-ish default prompt with key info early in the text to sanity-check
 # whether multi-chunk context is used during generation.
@@ -18,40 +19,61 @@ DEFAULT_PROMPT = (
     "Key fact: The secret passphrase is LUMA-4242 and the ferry departs at dawn. "
     "Locals brew citrus tea with basil and mint, and the streets are paved with cobalt tiles. "
     "A traveling cartographer sketched the harbor from the old fortress, noting two cranes and a rusted tram. "
-    "Visitors should watch for the sea glass markets near the eastern gate. "
-    "Rumor says the lighthouse keeper hums old radio jingles as storms roll in. "
-    "Record your observations about Zephyria and its harbor culture."
+    "Visitors should watch for the sea glass markets"
 )
 
 
-def load_model(checkpoint_path: Path, device: torch.device) -> MegalodonLM:
-    """Load MegalodonLM and weights from a training checkpoint."""
+def load_model(
+    checkpoint_path: Path, device: torch.device
+) -> Union[MegalodonLM, Llama]:
+    """Load model weights from a training checkpoint.
+
+    Automatically detects model type (Megalodon or Llama) from saved config.
+    """
     ckpt = torch.load(checkpoint_path, map_location="cpu")
     cfg = ckpt["config"]
-    model = MegalodonLM(
-        vocab_size=cfg.get("num_tokens", 256),
-        model_dim=cfg.get("model_dim", 384),
-        num_layers=cfg.get("num_layers", 6),
-        num_heads=cfg.get("num_heads", 3),
-        z_dim=cfg.get("z_dim", 192),
-        value_dim=cfg.get("value_dim", 384),
-        ffn_hidden_dim=cfg.get("ffn_hidden_dim", 1024),
-        cema_ndim=cfg.get("cema_ndim", 8),
-        chunk_size=int(cfg.get("chunk_size", cfg.get("seq_len", 512))),
-        norm_num_groups=cfg.get("norm_num_groups", 32),
-        dropout=cfg.get("dropout", 0.0),
-        attention_dropout=cfg.get("attention_dropout", 0.0),
-        hidden_dropout=cfg.get("hidden_dropout", 0.0),
-        swiglu=bool(cfg.get("swiglu", True)),
-        rescale_nffn=bool(cfg.get("rescale_nffn", False)),
-        scale_emb=bool(cfg.get("scale_emb", False)),
-        share_emb=bool(cfg.get("share_emb", False)),
-        rope_base=cfg.get("rope_base"),
-        init_mode=cfg.get("init_mode", "he"),
-        gradient_checkpointing=bool(cfg.get("gradient_checkpointing", False)),
-    ).to(device)
+    model_type = str(cfg.get("model", "llama")).lower()
+
+    if model_type in ("megalodon", "mega"):
+        model = MegalodonLM(
+            vocab_size=cfg.get("num_tokens", 256),
+            model_dim=cfg.get("model_dim", 384),
+            num_layers=cfg.get("num_layers", 6),
+            num_heads=cfg.get("num_heads", 3),
+            z_dim=cfg.get("z_dim", 192),
+            value_dim=cfg.get("value_dim", 384),
+            ffn_hidden_dim=cfg.get("ffn_hidden_dim", 1024),
+            cema_ndim=cfg.get("cema_ndim", 8),
+            chunk_size=int(cfg.get("chunk_size", cfg.get("seq_len", 512))),
+            norm_num_groups=cfg.get("norm_num_groups", 32),
+            dropout=cfg.get("dropout", 0.0),
+            attention_dropout=cfg.get("attention_dropout", 0.0),
+            hidden_dropout=cfg.get("hidden_dropout", 0.0),
+            swiglu=bool(cfg.get("swiglu", True)),
+            rescale_nffn=bool(cfg.get("rescale_nffn", False)),
+            scale_emb=bool(cfg.get("scale_emb", False)),
+            share_emb=bool(cfg.get("share_emb", False)),
+            rope_base=cfg.get("rope_base"),
+            init_mode=cfg.get("init_mode", "he"),
+            gradient_checkpointing=bool(cfg.get("gradient_checkpointing", False)),
+        ).to(device)
+    elif model_type == "llama":
+        model = Llama(
+            num_tokens=cfg.get("num_tokens", 256),
+            dim=cfg.get("dim", 512),
+            depth=cfg.get("depth", 16),
+            heads=cfg.get("heads", 8),
+            dim_head=cfg.get("dim_head", 64),
+            tied_embedding=cfg.get("tied_embedding", True),
+            ffn_dim_multiplier=cfg.get("ffn_dim_multiplier"),
+            flash_attn=bool(cfg.get("flash_attn", False)),
+        ).to(device)
+    else:
+        raise ValueError(f"Unknown model type: {model_type}")
+
     model.load_state_dict(ckpt["model"])
     model.eval()
+    print(f"Loaded {model_type} model from {checkpoint_path}")
     return model
 
 

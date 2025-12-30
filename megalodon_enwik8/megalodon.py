@@ -22,7 +22,19 @@ except ImportError as err:  # pragma: no cover - env guard
 
 
 class MegalodonLM(nn.Module):
-    """HF-style Megalodon LM with a Llama-like interface used by train.py."""
+    """Simplified Megalodon wrapper matching the Llama interface in this repo.
+
+    Wraps megalodon-hf's MegalodonForCausalLM with a training-friendly API:
+    - forward(x, return_loss=True) for training loops
+    - generate() with min-p sampling for inference
+
+    Key differences from Llama:
+    - Uses CEMA (Complex EMA) for O(n) sequence modeling
+    - Chunk-based attention (chunk_size must divide seq_len or seq_len <= chunk_size)
+    - Requires bfloat16 or float32 (no float16 support)
+
+    See megalodon-hf docs for architecture details.
+    """
 
     def __init__(
         self,
@@ -80,15 +92,22 @@ class MegalodonLM(nn.Module):
         """Return vocabulary size."""
         return self.config.vocab_size
 
+    @property
+    def model_dim(self) -> int:
+        """Return model dimension (for API compatibility with Llama)."""
+        return self.config.model_dim
+
     @torch.no_grad()
     def generate(
         self,
         prompt: torch.Tensor,
         max_length: int,
         temperature: float = 1.0,
+        filter_thres: float = 0.9,  # unused, for API compat with Llama
         min_p: float = 0.1,
     ) -> torch.Tensor:
         """Autoregressive sampling loop with min-p filtering."""
+        del filter_thres  # unused, accepted for API compatibility
         out = prompt.clone()
         attn_mask = torch.ones_like(out, dtype=torch.long, device=out.device)
 

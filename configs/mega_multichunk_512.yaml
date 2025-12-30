@@ -1,6 +1,6 @@
 # Multi-chunk Megalodon config: train on seq_len 512 with chunk_size 256.
 # Generation uses a 384-token prompt and produces 128 tokens.
-run_dir: runs/mega-mc-512-1200steps-bf16-lowLR
+run_dir: runs/megalodon
 model: megalodon
 
 # Model

@@ -1,30 +1,30 @@
 [project]
-name = "decoder-pytorch-template"
+name = "megalodon-enwik8"
 dynamic = ["version"]
-description = "A template for autoregressive language model experimentation"
-authors = [
-    { name = "Peter Szemraj", email = "peterszemraj+dev@gmail.com" }
-]
+description = "Minimal example showing MEGALODON beats Transformers on character modeling"
+authors = [{ name = "Peter Szemraj", email = "peterszemraj+dev@gmail.com" }]
 readme = "README.md"
-requires-python = ">= 3.9"
+requires-python = ">= 3.10"
 license = { file = "LICENSE" }
 keywords = [
-    'artificial intelligence',
-    'deep learning',
+    'megalodon',
+    'linear-attention',
+    'character-level',
+    'enwik8',
     'transformer',
-    'attention mechanism',
+    'language-model',
 ]
 
-classifiers=[
+classifiers = [
     'Development Status :: 4 - Beta',
     'Intended Audience :: Developers',
     'Topic :: Scientific/Engineering :: Artificial Intelligence',
     'License :: OSI Approved :: MIT License',
-    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
 ]
 
 dependencies = [
-    "git+https://github.com/pszemraj/megalodon-hf.git",
+    "megalodon-hf @ git+https://github.com/pszemraj/megalodon-hf.git",
     "einops>=0.8.0",
     "rotary_embedding_torch",
     "torch>=2.9.0",
@@ -33,18 +33,14 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/pszemraj/decoder-pytorch-template"
+Repository = "https://github.com/pszemraj/megalodon-enwik8"
 
 [project.optional-dependencies]
 examples = []
-test = [
-    "pytest"
-]
+test = ["pytest"]
 
 [tool.pytest.ini_options]
-pythonpath = [
-  "."
-]
+pythonpath = ["."]
 
 [build-system]
 requires = ["setuptools >= 61.0", "setuptools-scm[toml] >= 8.0"]
@@ -55,9 +51,9 @@ managed = true
 dev-dependencies = []
 
 [tool.setuptools.packages.find]
-include = ["decoder_pytorch*"]
+include = ["megalodon_enwik8*"]
 
 [tool.setuptools_scm]
-write_to = "decoder_pytorch/_version.py"
+write_to = "megalodon_enwik8/_version.py"
 version_scheme = "no-guess-dev"
 local_scheme = "dirty-tag"

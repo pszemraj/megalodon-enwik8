@@ -14,8 +14,7 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader, Dataset
 from tqdm.auto import tqdm
 
-from decoder_pytorch import Llama, get_optimal_device, model_summary
-from decoder_pytorch import MegalodonLM
+from megalodon_enwik8 import Llama, MegalodonLM, get_optimal_device, model_summary
 
 
 # Data utilities
@@ -49,7 +48,10 @@ class SequenceDataset(Dataset):
 
 
 def load_data(data_path: str, train_split: float = 0.9):
-    """Load character-level data from gzip file."""
+    """Load character-level data from gzip file.
+
+    Note: Reads first 95MB of enwik8 (vs full 100MB) for faster iteration.
+    """
     with gzip.open(data_path) as f:
         data = np.frombuffer(f.read(int(95e6)), dtype=np.uint8).copy()
 
@@ -60,7 +62,11 @@ def load_data(data_path: str, train_split: float = 0.9):
     return train_data, val_data
 
 
-def train(config_path: str, resume_checkpoint: Optional[str] = None):
+def train(
+    config_path: str,
+    resume_checkpoint: Optional[str] = None,
+    save_optimizer: bool = False,
+):
     """Main training function."""
 
     # Load config
@@ -89,8 +95,12 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
         f"{f' ({amp_dtype})' if use_autocast else ' (full fp32)'}"
     )
 
-    if config.get("seed"):
-        torch.manual_seed(config["seed"])
+    seed = config.get("seed")
+    if seed is not None:
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+        np.random.seed(seed)
 
     # Load data
     train_data, val_data = load_data(config["data_path"])
@@ -185,7 +195,10 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
     if resume_checkpoint:
         checkpoint = torch.load(resume_checkpoint, map_location=device)
         model.load_state_dict(checkpoint["model"])
-        optimizer.load_state_dict(checkpoint["optimizer"])
+        if "optimizer" in checkpoint:
+            optimizer.load_state_dict(checkpoint["optimizer"])
+        else:
+            print("Note: Checkpoint has no optimizer state, starting fresh optimizer")
         step = checkpoint.get("step", 0)
         print(f"Resumed from step {step}")
 
@@ -194,9 +207,11 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
         print("Compiling model with torch.compile...")
         model = torch.compile(model)
 
-    # Create output directory
+    # Create output directory and save config
     run_dir = Path(config.get("run_dir", "runs"))
     run_dir.mkdir(parents=True, exist_ok=True)
+    with open(run_dir / "config.yaml", "w") as f:
+        yaml.dump(config, f, default_flow_style=False, sort_keys=False)
 
     # Training loop
     num_batches = config.get("num_batches", 100000)
@@ -288,10 +303,6 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
 
         optimizer.step()
 
-        # Project EMA parameters back into stable region (Megalodon only)
-        if hasattr(model, "project_ema_parameters"):
-            model.project_ema_parameters()
-
         cumulative_tokens += total_tokens
         pbar.set_postfix({"loss": f"{avg_loss:.4f}"})
 
@@ -325,10 +336,11 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
         if step % save_every == 0 and step > 0:
             checkpoint = {
                 "model": model.state_dict(),
-                "optimizer": optimizer.state_dict(),
                 "step": step,
                 "config": config,
             }
+            if save_optimizer:
+                checkpoint["optimizer"] = optimizer.state_dict()
             torch.save(checkpoint, run_dir / f"checkpoint_{step}.pt")
             tqdm.write(f"Saved checkpoint at step {step}")
 
@@ -337,10 +349,11 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
     # Final save
     checkpoint = {
         "model": model.state_dict(),
-        "optimizer": optimizer.state_dict(),
         "step": step,
         "config": config,
     }
+    if save_optimizer:
+        checkpoint["optimizer"] = optimizer.state_dict()
     torch.save(checkpoint, run_dir / "final.pt")
     print(f"\nTraining complete! Final checkpoint saved to {run_dir}/final.pt")
 
@@ -357,13 +370,18 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--resume", type=str, default=None, help="Path to checkpoint to resume from"
     )
+    parser.add_argument(
+        "--save-optimizer",
+        action="store_true",
+        help="Save optimizer state in checkpoints (increases size ~3x)",
+    )
     return parser
 
 
 def run():
     """Entry point for training script."""
     args = get_parser().parse_args()
-    train(args.config, args.resume)
+    train(args.config, args.resume, save_optimizer=args.save_optimizer)
 
 
 if __name__ == "__main__":

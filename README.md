@@ -1,6 +1,6 @@
 # megalodon-enwik8
 
-Minimal example demonstrating **MEGALODON** outperforms Llama-style Transformers on character-level language modeling.
+Minimal example demonstrating **MEGALODON** outperforms Llama-style Transformers on character-level language modeling after the **same number of training steps**.
 
 ## Results
 
@@ -36,7 +36,7 @@ A **sanity check / MWE** showing [megalodon-hf](https://github.com/pszemraj/mega
 - A comprehensive benchmark suite
 - Production-ready training code
 
-The real code is at: <https://github.com/pszemraj/megalodon-hf>
+The modeling code [can be found here](https://github.com/pszemraj/megalodon-hf).
 
 ## Requirements
 

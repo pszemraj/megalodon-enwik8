@@ -1,6 +1,7 @@
 # Experimental Results
 
-> **Disclaimer**: This is a sanity check, not a rigorous benchmark. Both models use identical hyperparameters (LR, batch size, etc.) with no per-architecture tuning. The goal is to show Megalodon is viable and competitive—not to crown a winner. Take the specific numbers with a grain of salt; your mileage may vary with different configs, scales, or datasets.
+> [!IMPORTANT]
+> **Disclaimer**: This is a sanity check, not a rigorous benchmark. Both models use identical hyperparameters (LR, batch size, etc.) with no per-architecture tuning. The goal is to show Megalodon is viable and competitive, not to determine a winner. Take the specific numbers with a grain of salt; your mileage may vary with different configs, scales, or datasets.
 
 ## Setup
 

@@ -48,7 +48,10 @@ class SequenceDataset(Dataset):
 
 
 def load_data(data_path: str, train_split: float = 0.9):
-    """Load character-level data from gzip file."""
+    """Load character-level data from gzip file.
+
+    Note: Reads first 95MB of enwik8 (vs full 100MB) for faster iteration.
+    """
     with gzip.open(data_path) as f:
         data = np.frombuffer(f.read(int(95e6)), dtype=np.uint8).copy()
 

@@ -62,7 +62,11 @@ def load_data(data_path: str, train_split: float = 0.9):
     return train_data, val_data
 
 
-def train(config_path: str, resume_checkpoint: Optional[str] = None):
+def train(
+    config_path: str,
+    resume_checkpoint: Optional[str] = None,
+    save_optimizer: bool = False,
+):
     """Main training function."""
 
     # Load config
@@ -191,7 +195,10 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
     if resume_checkpoint:
         checkpoint = torch.load(resume_checkpoint, map_location=device)
         model.load_state_dict(checkpoint["model"])
-        optimizer.load_state_dict(checkpoint["optimizer"])
+        if "optimizer" in checkpoint:
+            optimizer.load_state_dict(checkpoint["optimizer"])
+        else:
+            print("Note: Checkpoint has no optimizer state, starting fresh optimizer")
         step = checkpoint.get("step", 0)
         print(f"Resumed from step {step}")
 
@@ -329,10 +336,11 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
         if step % save_every == 0 and step > 0:
             checkpoint = {
                 "model": model.state_dict(),
-                "optimizer": optimizer.state_dict(),
                 "step": step,
                 "config": config,
             }
+            if save_optimizer:
+                checkpoint["optimizer"] = optimizer.state_dict()
             torch.save(checkpoint, run_dir / f"checkpoint_{step}.pt")
             tqdm.write(f"Saved checkpoint at step {step}")
 
@@ -341,10 +349,11 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
     # Final save
     checkpoint = {
         "model": model.state_dict(),
-        "optimizer": optimizer.state_dict(),
         "step": step,
         "config": config,
     }
+    if save_optimizer:
+        checkpoint["optimizer"] = optimizer.state_dict()
     torch.save(checkpoint, run_dir / "final.pt")
     print(f"\nTraining complete! Final checkpoint saved to {run_dir}/final.pt")
 
@@ -361,13 +370,18 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--resume", type=str, default=None, help="Path to checkpoint to resume from"
     )
+    parser.add_argument(
+        "--save-optimizer",
+        action="store_true",
+        help="Save optimizer state in checkpoints (increases size ~3x)",
+    )
     return parser
 
 
 def run():
     """Entry point for training script."""
     args = get_parser().parse_args()
-    train(args.config, args.resume)
+    train(args.config, args.resume, save_optimizer=args.save_optimizer)
 
 
 if __name__ == "__main__":

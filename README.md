@@ -23,7 +23,7 @@ pip install -e .
 python train.py --config configs/mega_multichunk_512.yaml
 
 # Train Llama baseline
-python train.py --config configs/llama_multichunk_512.yaml
+python train.py --config configs/llama_512.yaml
 ```
 
 ## What This Repo Is
@@ -65,7 +65,7 @@ megalodon-enwik8/
 │   └── utils.py         # Sampling & device helpers
 ├── configs/
 │   ├── mega_multichunk_512.yaml  # Primary Megalodon config
-│   ├── llama_multichunk_512.yaml # Matched Llama baseline
+│   ├── llama_512.yaml # Matched Llama baseline
 │   └── test.yaml                 # Quick smoke test
 ├── data/
 │   └── enwik8.gz        # Character-level dataset

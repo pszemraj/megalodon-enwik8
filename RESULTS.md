@@ -56,7 +56,7 @@ Megalodon has ~10% fewer parameters than the matched Llama baseline.
 python train.py --config configs/mega_multichunk_512.yaml
 
 # Train Llama
-python train.py --config configs/llama_multichunk_512.yaml
+python train.py --config configs/llama_512.yaml
 ```
 
 Checkpoints saved to `runs/megalodon/` and `runs/llama/`.

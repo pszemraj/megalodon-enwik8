@@ -200,9 +200,11 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
         print("Compiling model with torch.compile...")
         model = torch.compile(model)
 
-    # Create output directory
+    # Create output directory and save config
     run_dir = Path(config.get("run_dir", "runs"))
     run_dir.mkdir(parents=True, exist_ok=True)
+    with open(run_dir / "config.yaml", "w") as f:
+        yaml.dump(config, f, default_flow_style=False, sort_keys=False)
 
     # Training loop
     num_batches = config.get("num_batches", 100000)

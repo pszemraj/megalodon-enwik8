@@ -4,10 +4,10 @@ Minimal example demonstrating **MEGALODON** outperforms Llama-style Transformers
 
 ## Results
 
-| Model | Parameters | Val Loss @ 1100 steps | BPC |
-|-------|------------|----------------------|-----|
-| **Megalodon** | 11.3M | **1.453** | **2.10** |
-| Llama | 12.5M | 1.534 | 2.21 |
+| Model         | Parameters | Val Loss @ 1100 steps | BPC      |
+| ------------- | ---------- | --------------------- | -------- |
+| **Megalodon** | 11.3M      | **1.453**             | **2.10** |
+| Llama         | 12.5M      | 1.534                 | 2.21     |
 
 Megalodon achieves **5.3% lower loss** with **10% fewer parameters**.
 
@@ -36,7 +36,7 @@ A **sanity check / MWE** showing [megalodon-hf](https://github.com/pszemraj/mega
 - A comprehensive benchmark suite
 - Production-ready training code
 
-The real code is at: https://github.com/pszemraj/megalodon-hf
+The real code is at: <https://github.com/pszemraj/megalodon-hf>
 
 ## Requirements
 
@@ -47,11 +47,11 @@ Dependencies are installed via `pip install -e .`
 
 ## Device Support
 
-| Device | Status | Notes |
-|--------|--------|-------|
-| NVIDIA GPU | Best | Fused optimizer & flash attention |
-| Apple Silicon | Good | MPS backend with autocast |
-| CPU | Works | Slow; use for testing only |
+| Device        | Status | Notes                             |
+| ------------- | ------ | --------------------------------- |
+| NVIDIA GPU    | Best   | Fused optimizer & flash attention |
+| Apple Silicon | Good   | MPS backend with autocast         |
+| CPU           | Works  | Slow; use for testing only        |
 
 Override device with `FORCE_DEVICE=cuda`, `FORCE_DEVICE=mps`, or `FORCE_DEVICE=cpu`.
 
@@ -81,6 +81,7 @@ MIT (this repo) / Apache-2.0 ([megalodon-hf](https://github.com/pszemraj/megalod
 ## References
 
 Megalodon architecture:
+
 ```bibtex
 @misc{ma2024megalodon,
       title={Megalodon: Efficient LLM Pretraining and Inference with Unlimited Context Length},
@@ -93,6 +94,7 @@ Megalodon architecture:
 ```
 
 Llama baseline:
+
 ```bibtex
 @misc{touvron2023llama2,
       title={Llama 2: Open Foundation and Fine-Tuned Chat Models},

@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from decoder_pytorch import MegalodonLM
+from megalodon_enwik8 import MegalodonLM
 
 # A non-enwik8-ish default prompt with key info early in the text to sanity-check
 # whether multi-chunk context is used during generation.

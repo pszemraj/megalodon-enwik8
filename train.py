@@ -14,8 +14,7 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader, Dataset
 from tqdm.auto import tqdm
 
-from decoder_pytorch import Llama, get_optimal_device, model_summary
-from decoder_pytorch import MegalodonLM
+from megalodon_enwik8 import Llama, MegalodonLM, get_optimal_device, model_summary
 
 
 # Data utilities
@@ -89,8 +88,12 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
         f"{f' ({amp_dtype})' if use_autocast else ' (full fp32)'}"
     )
 
-    if config.get("seed"):
-        torch.manual_seed(config["seed"])
+    seed = config.get("seed")
+    if seed is not None:
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+        np.random.seed(seed)
 
     # Load data
     train_data, val_data = load_data(config["data_path"])
@@ -287,10 +290,6 @@ def train(config_path: str, resume_checkpoint: Optional[str] = None):
             torch.nn.utils.clip_grad_norm_(model.parameters(), config["grad_clip_norm"])
 
         optimizer.step()
-
-        # Project EMA parameters back into stable region (Megalodon only)
-        if hasattr(model, "project_ema_parameters"):
-            model.project_ema_parameters()
 
         cumulative_tokens += total_tokens
         pbar.set_postfix({"loss": f"{avg_loss:.4f}"})

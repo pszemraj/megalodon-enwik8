@@ -19,9 +19,7 @@ DEFAULT_PROMPT = (
     "Key fact: The secret passphrase is LUMA-4242 and the ferry departs at dawn. "
     "Locals brew citrus tea with basil and mint, and the streets are paved with cobalt tiles. "
     "A traveling cartographer sketched the harbor from the old fortress, noting two cranes and a rusted tram. "
-    "Visitors should watch for the sea glass markets near the eastern gate. "
-    "Rumor says the lighthouse keeper hums old radio jingles as storms roll in. "
-    "Record your observations about Zephyria and its harbor culture."
+    "Visitors should watch for the sea glass markets"
 )
 
 

@@ -1,17 +1,22 @@
 # megalodon-enwik8
 
-Minimal example demonstrating **MEGALODON** outperforms Llama-style Transformers on character-level language modeling after the **same number of training steps**.
+Minimal example demonstrating **[MEGALODON](https://arxiv.org/abs/2404.08801)** outperforms Llama-style Transformers on character-level language modeling after the **same number of training steps**. A companion repo to [megalodon-hf](https://github.com/pszemraj/megalodon-hf).
 
 ## Results
 
-| Model         | Parameters | Val Loss @ 1100 steps | BPC      |
-| ------------- | ---------- | --------------------- | -------- |
-| **Megalodon** | 11.3M      | **1.453**             | **2.10** |
-| Llama         | 12.5M      | 1.534                 | 2.21     |
+Similarly-sized architectures trained on enwik8 for 1200 steps (_10% of the dataset_):
 
-Megalodon achieves **5.3% lower loss** with **10% fewer parameters**.
+| Model         | Parameters | Val Loss @ 1100 | BPC      | VRAM  | Time   |
+| ------------- | ---------- | --------------- | -------- | ----- | ------ |
+| **Megalodon** | 11.3M      | **1.453**       | **2.10** | 12 GB | 8m 09s |
+| Llama         | 12.5M      | 1.534           | 2.21     | 7 GB  | 3m 07s |
 
-> See [RESULTS.md](RESULTS.md) for detailed experimental results.
+Megalodon achieves **5.3% lower loss** with **10% fewer parameters**, but at higher compute cost (~2.6x slower, ~1.7x VRAM).
+
+- This is expected: torch lacks native support for Megalodon's complex-valued EMA operators (_and [megalodon-hf](https://github.com/pszemraj/megalodon-hf) explicitly eschews complex-value CUDA kernels a la the upstream_), while Transformers benefit from years of kernel optimization.
+- See [RESULTS.md](RESULTS.md) for experimental details and mitigation paths w.r.t. speed and memory.
+
+This repo exists to demonstrate that Megalodon _can_ outperform Transformers in a controlled setting, and as such focuses on correctness & readability over speed.
 
 ## Quick Start
 
@@ -47,13 +52,15 @@ Dependencies are installed via `pip install -e .`
 
 ## Device Support
 
-| Device        | Status | Notes                             |
-| ------------- | ------ | --------------------------------- |
-| NVIDIA GPU    | Best   | Fused optimizer & flash attention |
-| Apple Silicon | Good   | MPS backend with autocast         |
-| CPU           | Works  | Slow; use for testing only        |
+| Device        | Status       | Notes                                                    |
+| ------------- | ------------ | -------------------------------------------------------- |
+| NVIDIA GPU    | Best         | flash attention, SDPA for supported ops                  |
+| Apple Silicon | Untested[^1] | MPS backend with autocast, template works for `llama.py` |
+| CPU           | Works        | Slow; use for testing only                               |
 
 Override device with `FORCE_DEVICE=cuda`, `FORCE_DEVICE=mps`, or `FORCE_DEVICE=cpu`.
+
+[^1]: I do not have access to Apple Silicon hardware for testing megalodon-specific training. The repo template did test `llama.py` on MPS and confirmed it works. Please open an issue/PR if you try this out.
 
 ## Structure
 

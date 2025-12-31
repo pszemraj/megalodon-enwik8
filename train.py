@@ -175,17 +175,11 @@ def train(
     model_summary(model, max_depth=3, show_param_shapes=True)
 
     # Optimizer
-    # Fused optimizer is available for CUDA only (not MPS or CPU)
-    has_complex_params = any(p.is_complex() for p in model.parameters())
-    fused_opt = device_caps["supports_fused_optimizer"] and not has_complex_params
-    if device_caps["supports_fused_optimizer"] and not fused_opt:
-        print("Disabling fused optimizer because the model has complex parameters.")
-
     optimizer = Adam(
         model.parameters(),
         lr=config.get("learning_rate", 1e-3),
         weight_decay=config.get("weight_decay", 0.0),
-        fused=fused_opt,
+        fused=False, # megalodon does not support fused optimizers, so keep it consistent
     )
 
     # Training state

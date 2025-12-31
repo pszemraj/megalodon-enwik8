@@ -14,6 +14,8 @@ Megalodon achieves **5.3% lower loss** with **10% fewer parameters**, but at hig
 - This is expected: torch lacks native support for Megalodon's complex-valued EMA operators (_and [megalodon-hf](https://github.com/pszemraj/megalodon-hf) explicitly eschews complex-value CUDA kernels a la the upstream_), while Transformers benefit from years of kernel optimization.
 - See [RESULTS.md](RESULTS.md) for experimental details and mitigation paths w.r.t. speed and memory.
 
+The point here is to demonstrate that Megalodon _can_ outperform Transformers in a controlled setting, and as such focuses on correctness and readability over speed.
+
 ## Quick Start
 
 ```bash

@@ -1,8 +1,10 @@
 # megalodon-enwik8
 
-Minimal example demonstrating **MEGALODON** outperforms Llama-style Transformers on character-level language modeling after the **same number of training steps**. A companion repo to [megalodon-hf](https://github.com/pszemraj/megalodon-hf).
+Minimal example demonstrating **[MEGALODON](https://arxiv.org/abs/2404.08801)** outperforms Llama-style Transformers on character-level language modeling after the **same number of training steps**. A companion repo to [megalodon-hf](https://github.com/pszemraj/megalodon-hf).
 
 ## Results
+
+Similarly-sized architectures trained on enwik8 for 1200 steps (_10% of the dataset_):
 
 | Model         | Parameters | Val Loss @ 1100 | BPC      | VRAM  | Time   |
 | ------------- | ---------- | --------------- | -------- | ----- | ------ |
@@ -14,7 +16,7 @@ Megalodon achieves **5.3% lower loss** with **10% fewer parameters**, but at hig
 - This is expected: torch lacks native support for Megalodon's complex-valued EMA operators (_and [megalodon-hf](https://github.com/pszemraj/megalodon-hf) explicitly eschews complex-value CUDA kernels a la the upstream_), while Transformers benefit from years of kernel optimization.
 - See [RESULTS.md](RESULTS.md) for experimental details and mitigation paths w.r.t. speed and memory.
 
-The point here is to demonstrate that Megalodon _can_ outperform Transformers in a controlled setting, and as such focuses on correctness and readability over speed.
+This repo exists to demonstrate that Megalodon _can_ outperform Transformers in a controlled setting, and as such focuses on correctness & readability over speed.
 
 ## Quick Start
 

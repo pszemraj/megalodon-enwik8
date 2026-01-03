@@ -8,17 +8,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .utils import gumbel_sample, min_p_filter
+from megalodon.configuration_megalodon import MegalodonConfig
+from megalodon.modeling_megalodon import MegalodonForCausalLM
 
-try:
-    from megalodon.configuration_megalodon import MegalodonConfig
-    from megalodon.modeling_megalodon import MegalodonForCausalLM
-except ImportError as err:  # pragma: no cover - env guard
-    raise ImportError(
-        "Unable to import `megalodon`. Install the megalodon-hf package in the "
-        "active environment (e.g., `pip install -e .` from the repo root) before "
-        "using MegalodonLM."
-    ) from err
+from .utils import gumbel_sample, min_p_filter
 
 
 class MegalodonLM(nn.Module):

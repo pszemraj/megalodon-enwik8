@@ -50,7 +50,7 @@ To be transparent: Megalodon is currently slower and more memory-intensive than 
 
 5. **Lack of ecosystem support.** Transformer architectures have years of optimization (Flash Attention, compiler passes, quantization tools). Megalodon's operators are too new to have equivalent infrastructure.[^2]
 
-[^1]: This is **by design** to demonstrate that Megalodon's key advantage, _sublinear_ memory scaling with context length, functions properly in this implementation but adds overhead at short sequences. Megalodon is fundamentally designed for long contexts (_tens of thousands+ tokens_) where Transformers struggle.
+[^1]: This is **by design** to demonstrate that Megalodon's key advantage, _subquadratic (linear)_ memory scaling with context length, functions properly in this implementation but adds overhead at short sequences. Megalodon is fundamentally designed for long contexts (_tens of thousands+ tokens_) where Transformers struggle.
 [^2]:`torch.compile` cannot even trace through complex tensor backward passes yet ([pytorch/pytorch#125718](https://github.com/pytorch/pytorch/issues/125718)).
 
 **Paths to parity:**

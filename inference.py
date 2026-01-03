@@ -34,7 +34,10 @@ def load_model(
     cfg = ckpt["config"]
     model_type = str(cfg.get("model", "llama")).lower()
 
-    if model_type in ("megalodon", "mega"):
+    if model_type == "megalodon":
+        import megalodon
+
+        print(f"megalodon-hf version: {megalodon.__version__}")
         model = MegalodonLM(
             vocab_size=cfg.get("num_tokens", 256),
             model_dim=cfg.get("model_dim", 384),

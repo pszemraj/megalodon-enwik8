@@ -1,18 +1,17 @@
-# Multi-chunk Megalodon config: train on seq_len 512 with chunk_size 256.
-# Generation uses a 384-token prompt and produces 128 tokens.
-run_dir: runs/mega-mc-512
+# Slightly larger Megalodon variant for enwik8
+run_dir: runs/megalodon-small
 model: megalodon
 
 # Model
 num_tokens: 256
-model_dim: 384
-num_layers: 6
-num_heads: 3
-z_dim: 192
-value_dim: 384
-ffn_hidden_dim: 1024
+model_dim: 512
+num_layers: 8
+num_heads: 4
+z_dim: 256
+value_dim: 512
+ffn_hidden_dim: 1408  # ~2.75x width
 cema_ndim: 8
-chunk_size: 256
+chunk_size: 512
 norm_num_groups: 32
 swiglu: true
 rescale_nffn: false
@@ -27,10 +26,10 @@ gradient_checkpointing: false
 compile: false
 use_autocast: true
 
-# Training schedule (kept short for sanity runs)
-num_batches: 200
+# Training schedule
+num_batches: 8000
 batch_size: 1
-grad_accum_every: 16
+grad_accum_every: 12
 learning_rate: 0.0004
 weight_decay: 0.0002
 grad_clip_norm: 1.0
@@ -40,11 +39,9 @@ data_path: data/enwik8.gz
 seq_len: 512
 
 # training/validation/generation
-validate_every: 100
-val_batches: 10
-generate_every: 50
-generate_prompt_len: 384
-generate_length: 128
+validate_every: 200
+val_batches: 16
+generate_every: 400
 save_every: 2000
 temperature: 1.0
 min_p: 0.1

@@ -8,10 +8,10 @@ Similarly-sized architectures trained on enwik8 for 1200 steps (_10% of the data
 
 | Model         | Parameters | Val Loss @ 1100 | BPC      | VRAM  | Time   |
 | ------------- | ---------- | --------------- | -------- | ----- | ------ |
-| **Megalodon** | 11.3M      | **1.453**       | **2.10** | 12 GB | 8m 09s |
-| Llama         | 12.5M      | 1.534           | 2.21     | 7 GB  | 3m 07s |
+| **Megalodon** | 11.3M      | **1.451**       | **2.09** | 12 GB | 8m 09s |
+| Llama         | 12.5M      | 1.542           | 2.22     | 7 GB  | 3m 07s |
 
-Megalodon achieves **5.3% lower loss** with **10% fewer parameters**, but at higher compute cost (~2.6x slower, ~1.7x VRAM).
+Megalodon achieves **5.9% lower loss** with **10% fewer parameters**, but at higher compute cost (~2.6x slower, ~1.7x VRAM).
 
 - This is expected: torch lacks native support for Megalodon's complex-valued EMA operators (_and [megalodon-hf](https://github.com/pszemraj/megalodon-hf) explicitly eschews complex-value CUDA kernels a la the upstream_), while Transformers benefit from years of kernel optimization.
 - See [RESULTS.md](RESULTS.md) for experimental details and mitigation paths w.r.t. speed and memory.
@@ -25,7 +25,7 @@ This repo exists to demonstrate that Megalodon _can_ outperform Transformers in 
 pip install -e .
 
 # Train Megalodon (primary)
-python train.py --config configs/mega_multichunk_512.yaml
+python train.py --config configs/megalodon_multichunk_512.yaml
 
 # Train Llama baseline
 python train.py --config configs/llama_512.yaml
@@ -71,7 +71,7 @@ megalodon-enwik8/
 │   ├── llama.py         # Llama baseline
 │   └── utils.py         # Sampling & device helpers
 ├── configs/
-│   ├── mega_multichunk_512.yaml  # Primary Megalodon config
+│   ├── megalodon_multichunk_512.yaml  # Primary config
 │   ├── llama_512.yaml # Matched Llama baseline
 │   └── test.yaml                 # Quick smoke test
 ├── data/

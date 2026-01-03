@@ -139,7 +139,10 @@ def train(
             ffn_dim_multiplier=config.get("ffn_dim_multiplier"),
             flash_attn=bool(flash_attn_requested),
         ).to(device)
-    elif model_type in ("megalodon", "mega"):
+    elif model_type == "megalodon":
+        import megalodon
+
+        print(f"megalodon-hf version: {megalodon.__version__}")
         seq_len = config["seq_len"]
         chunk_size = int(config.get("chunk_size", seq_len))
         if seq_len > chunk_size and seq_len % chunk_size != 0:
@@ -179,7 +182,7 @@ def train(
         model.parameters(),
         lr=config.get("learning_rate", 1e-3),
         weight_decay=config.get("weight_decay", 0.0),
-        fused=False, # megalodon does not support fused optimizers, so keep it consistent
+        fused=False,  # megalodon does not support fused optimizers, so keep it consistent
     )
 
     # Training state

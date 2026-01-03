@@ -82,7 +82,7 @@ To be transparent: Megalodon is currently slower and more memory-intensive than 
 
 ```bash
 # Train Megalodon
-python train.py --config configs/mega_multichunk_512.yaml
+python train.py --config configs/megalodon_multichunk_512.yaml
 
 # Train Llama
 python train.py --config configs/llama_512.yaml

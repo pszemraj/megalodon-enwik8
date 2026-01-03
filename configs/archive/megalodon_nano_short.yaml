@@ -1,8 +1,8 @@
-# Megalodon configuration roughly comparable to nano.yaml parameter count
-run_dir: runs/mega-nano
+# Short-run Megalodon config for quick comparison/debug
+run_dir: runs/megalodon-nano-short
 model: megalodon
 
-# Model
+# Model (match megalodon_nano)
 num_tokens: 256
 model_dim: 384
 num_layers: 6
@@ -11,7 +11,7 @@ z_dim: 192
 value_dim: 384
 ffn_hidden_dim: 1024
 cema_ndim: 8
-chunk_size: 512  # match seq_len for single-chunk training
+chunk_size: 512
 norm_num_groups: 32
 swiglu: true
 rescale_nffn: false
@@ -26,8 +26,8 @@ gradient_checkpointing: false
 compile: false
 use_autocast: true
 
-# Training schedule
-num_batches: 10000
+# Training schedule (trimmed for ~600s runs)
+num_batches: 300
 batch_size: 1
 grad_accum_every: 16
 learning_rate: 0.0004
@@ -39,9 +39,9 @@ data_path: data/enwik8.gz
 seq_len: 512
 
 # training/validation/generation
-validate_every: 250
-val_batches: 20
-generate_every: 250
+validate_every: 100
+val_batches: 10
+generate_every: 50
 save_every: 2000
 temperature: 1.0
 min_p: 0.1

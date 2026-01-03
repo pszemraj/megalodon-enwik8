@@ -25,7 +25,7 @@ This repo exists to demonstrate that Megalodon _can_ outperform Transformers in 
 pip install -e .
 
 # Train Megalodon (primary)
-python train.py --config configs/mega_multichunk_512.yaml
+python train.py --config configs/megalodon_multichunk_512.yaml
 
 # Train Llama baseline
 python train.py --config configs/llama_512.yaml
@@ -71,7 +71,7 @@ megalodon-enwik8/
 │   ├── llama.py         # Llama baseline
 │   └── utils.py         # Sampling & device helpers
 ├── configs/
-│   ├── mega_multichunk_512.yaml  # Primary Megalodon config
+│   ├── megalodon_multichunk_512.yaml  # Primary config
 │   ├── llama_512.yaml # Matched Llama baseline
 │   └── test.yaml                 # Quick smoke test
 ├── data/

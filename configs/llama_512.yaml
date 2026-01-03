@@ -1,4 +1,4 @@
-# Llama baseline matched to mega_multichunk_512.yaml for fair comparison.
+# Llama baseline matched to megalodon_multichunk_512.yaml for fair comparison.
 # Architecture chosen to have similar parameter count to Megalodon.
 run_dir: runs/llama
 model: llama

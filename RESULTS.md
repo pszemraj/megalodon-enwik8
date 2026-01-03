@@ -29,12 +29,12 @@ Megalodon has ~10% fewer parameters than the matched Llama baseline.
 
 | Model         | Val Loss @ 1100 | BPC      | VRAM  | Time (1200 steps) |
 | ------------- | --------------- | -------- | ----- | ----------------- |
-| **Megalodon** | **1.453**       | **2.10** | 12 GB | 8m 09s            |
-| Llama         | 1.534           | 2.21     | 7 GB  | 3m 07s            |
+| **Megalodon** | **1.451**       | **2.09** | 12 GB | 8m 09s            |
+| Llama         | 1.542           | 2.22     | 7 GB  | 3m 07s            |
 
 > BPC (bits per character) = val_loss / ln(2)
 
-**Result**: Megalodon achieves **5.3% lower validation loss** than Llama with 10% fewer parameters, but at higher compute cost (~2.6x slower, ~1.7x more VRAM).
+**Result**: Megalodon achieves **5.9% lower validation loss** than Llama with 10% fewer parameters, but at higher compute cost (~2.6x slower, ~1.7x more VRAM).
 
 ### On Training Efficiency
 
@@ -65,18 +65,18 @@ To be transparent: Megalodon is currently slower and more memory-intensive than 
 
 | Step | Megalodon Val Loss | Llama Val Loss |
 | ---- | ------------------ | -------------- |
-| 0    | 5.673              | 5.674          |
-| 100  | 2.025              | 2.594          |
-| 200  | 1.707              | 2.285          |
-| 300  | 1.517              | 2.059          |
-| 400  | 1.552              | 1.871          |
-| 500  | 1.570              | 1.821          |
-| 600  | 1.565              | 1.715          |
-| 700  | 1.546              | 1.505          |
-| 800  | 1.507              | 1.646          |
-| 900  | 1.507              | 1.643          |
-| 1000 | 1.446              | 1.665          |
-| 1100 | 1.453              | 1.534          |
+| 0    | 5.673              | 5.676          |
+| 100  | 2.026              | 2.604          |
+| 200  | 1.703              | 2.287          |
+| 300  | 1.515              | 2.061          |
+| 400  | 1.551              | 1.870          |
+| 500  | 1.570              | 1.819          |
+| 600  | 1.566              | 1.712          |
+| 700  | 1.545              | 1.504          |
+| 800  | 1.505              | 1.642          |
+| 900  | 1.507              | 1.647          |
+| 1000 | 1.447              | 1.665          |
+| 1100 | 1.451              | 1.542          |
 
 ## Reproduction
 
